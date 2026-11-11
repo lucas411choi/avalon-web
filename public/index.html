@@ -3,76 +3,81 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0d1c">
   <title>아발론 온라인</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M8 56V28l8 6V18l8 8V8l8 12 8-12v18l8-8v16l8-6v28z' fill='%23d4a843'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Cinzel:wght@500;700;900&family=Gowun+Batang:wght@400;700&family=Song+Myung&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=2">
 </head>
 <body>
-  <!-- 성 배경 -->
+  <!-- 3D 배경 (WebGL) + WebGL 이 안 될 때 쓰는 CSS 배경 -->
+  <canvas id="bg3d" aria-hidden="true"></canvas>
   <div class="castle-bg" aria-hidden="true">
     <div class="stars"></div>
     <div class="moon"></div>
-    <svg class="castle castle-far" viewBox="0 0 1200 400" preserveAspectRatio="xMidYMax slice">
-      <path d="M0 400V300h60v-40h20v40h40v-90h-14v-20h14v-18h18v18h14v20h-14v90h70v-60h18v-24h12v24h18v60h80V180h-16v-24h16v-30h20v30h16v24h-16v120h60v-30h16v-18h12v18h16v30h70V140h-18v-26h18v-36h26v36h18v26h-18v170h70v-50h20v-20h14v20h20v50h60V200h-14v-22h14v-26h22v26h14v22h-14v110h80v-70h16v-22h14v22h16v70h50v100z"/>
-    </svg>
-    <svg class="castle castle-near" viewBox="0 0 1200 400" preserveAspectRatio="xMidYMax slice">
+    <svg class="castle" viewBox="0 0 1200 400" preserveAspectRatio="xMidYMax slice">
       <path d="M0 400V330h40v-30h14v-14h10v14h14v30h80v-50h-10v-16h10v-12h14v12h10v16h-10v50h120V250h-18v-26h18v-14h14v14h14v-14h14v14h18v26h-18v80h60V190h-22v-30h22v-24h16v-30l22-40 22 40v30h16v24h22v30h-22v140h60v-80h-18v-26h18v-14h14v14h14v-14h14v14h18v26h-18v80h120v-50h-10v-16h10v-12h14v12h10v16h-10v50h80v-30h14v-14h10v14h14v30h40v70z"/>
-      <g class="windows">
-        <rect x="574" y="140" width="10" height="18" rx="5"/><rect x="616" y="140" width="10" height="18" rx="5"/>
-        <rect x="590" y="200" width="20" height="30" rx="10"/><rect x="380" y="270" width="10" height="16" rx="5"/>
-        <rect x="810" y="270" width="10" height="16" rx="5"/>
-      </g>
     </svg>
-    <div class="fog"></div>
   </div>
+  <div class="vignette" aria-hidden="true"></div>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <div id="conn" class="conn hidden">서버에 다시 연결하는 중…</div>
 
   <!-- 1. 첫 화면 -->
   <section id="screen-home" class="screen">
-    <div class="home-card panel">
-      <h1 class="logo">AVALON<small>아발론 온라인</small></h1>
-      <p class="sub">5~10명 · 방 코드로 친구들과 함께</p>
-      <label class="field">
-        <span>내 이름</span>
-        <input id="home-name" maxlength="12" autocomplete="nickname" placeholder="이름 (12자 이하)">
-      </label>
-      <button id="btn-create" class="btn gold big">방 만들기</button>
-      <div class="divider"><span>또는</span></div>
-      <div class="join-row">
-        <input id="home-code" maxlength="4" placeholder="방 코드" autocomplete="off" autocapitalize="characters">
-        <button id="btn-join" class="btn big">참가하기</button>
-      </div>
-      <button id="btn-resume" class="btn ghost hidden"></button>
-      <details class="rules">
-        <summary>게임 규칙 보기</summary>
-        <div class="rules-body">
-          <p><b>목표</b> — 선은 원정 3번 성공, 악은 원정 3번 실패 또는 5번 연속 원정대 부결.</p>
-          <p><b>진행</b> — 원정대장이 원정대를 고르고, 모두가 찬성/반대 투표합니다. 찬성이 과반수를 넘기면 원정대원만 성공/실패 카드를 냅니다. 선은 반드시 성공, 악은 둘 중 아무거나 낼 수 있습니다. 실패가 1장이라도 나오면 원정 실패 (7명 이상일 때 4번째 원정은 실패 2장 이상 필요).</p>
-          <p><b>암살</b> — 선이 원정 3번 성공하면 악은 정체를 공개하고 상의한 뒤, 암살자가 멀린을 지목합니다. 맞히면 악 승리, 틀리면 선 승리.</p>
-          <p><b>멀린</b> 모드레드를 뺀 악을 앎 · <b>퍼시벌</b> 멀린과 모르가나를 알지만 누가 누군지 모름 · <b>모르가나</b> 퍼시벌에게 멀린처럼 보임 · <b>모드레드</b> 멀린에게 안 보임 · <b>오베론</b> 악끼리 서로 모름 · <b>랜슬롯</b> 서로를 알고, 매 원정 전 2/7 확률로 선/악이 뒤바뀜.</p>
+    <div class="home">
+      <h1 class="logo" aria-label="AVALON">
+        <span class="logo-main" data-text="AVALON">AVALON</span>
+        <span class="logo-sub">― 아발론 · 원탁의 배신자 ―</span>
+      </h1>
+      <div class="frame home-card">
+        <div class="frame-corners"></div>
+        <label class="field">
+          <span>기사의 이름</span>
+          <input id="home-name" maxlength="12" autocomplete="nickname" placeholder="이름 (12자 이하)">
+        </label>
+        <button id="btn-create" class="btn gold big"><span>⚜ 새 원탁 열기 (방 만들기)</span></button>
+        <div class="divider"><span>또는 초대받은 원탁으로</span></div>
+        <div class="join-row">
+          <input id="home-code" maxlength="4" placeholder="방 코드" autocomplete="off" autocapitalize="characters">
+          <button id="btn-join" class="btn iron big"><span>참가</span></button>
         </div>
-      </details>
+        <button id="btn-resume" class="btn ghost hidden"></button>
+        <p class="home-tip">혼자서도 OK — 방을 만들고 <b>AI 기사</b>를 원하는 만큼 초대하세요.</p>
+        <details class="rules">
+          <summary>📜 게임 규칙 보기</summary>
+          <div class="rules-body parchment">
+            <p><b>목표</b> — 선은 원정 3번 성공, 악은 원정 3번 실패 또는 5번 연속 원정대 부결.</p>
+            <p><b>진행</b> — 원정대장이 원정대를 고르고, 모두가 찬성/반대 투표합니다. 찬성이 과반수를 넘기면 원정대원만 성공/실패 카드를 냅니다. 선은 반드시 성공, 악은 둘 중 아무거나. 실패가 1장이라도 나오면 원정 실패 (7명 이상일 때 4번째 원정은 실패 2장 이상 필요).</p>
+            <p><b>암살</b> — 선이 원정 3번 성공하면 악은 정체를 공개하고 상의한 뒤, 암살자가 멀린을 지목합니다. 맞히면 악 승리, 틀리면 선 승리.</p>
+            <p><b>멀린</b> 모드레드를 뺀 악(랜슬롯 포함)을 앎 · <b>퍼시벌</b> 멀린과 모르가나를 알지만 구분 못 함 · <b>모르가나</b> 퍼시벌에게 멀린처럼 보임 · <b>모드레드</b> 멀린에게 안 보임 · <b>오베론</b> 악끼리 서로 모름 · <b>랜슬롯</b> 둘이 서로만 알고, 매 원정 전 2/7 확률로 선/악이 뒤바뀜 (다른 악과는 서로 모름).</p>
+          </div>
+        </details>
+      </div>
     </div>
   </section>
 
   <!-- 2. 대기실 -->
   <section id="screen-lobby" class="screen hidden">
     <div class="lobby-wrap">
-      <div class="panel lobby-main">
+      <div class="frame lobby-main">
+        <div class="frame-corners"></div>
         <div class="lobby-head">
           <div>
-            <div class="label">방 코드</div>
+            <div class="label">원탁 코드</div>
             <div class="room-code" id="lobby-code">----</div>
           </div>
           <div class="lobby-head-btns">
-            <button id="btn-copy-link" class="btn small">초대 링크 복사</button>
-            <button id="btn-leave-lobby" class="btn small ghost">나가기</button>
+            <button id="btn-copy-link" class="btn iron small">🔗 초대 링크 복사</button>
+            <button id="btn-leave-lobby" class="btn ghost small">나가기</button>
           </div>
         </div>
         <div class="lobby-count" id="lobby-count"></div>
-        <ul class="lobby-players" id="lobby-players"></ul>
+        <div class="table-stage" id="table-stage"></div>
+        <div id="lobby-ai"></div>
         <div id="lobby-setup"></div>
         <div class="lobby-actions" id="lobby-actions"></div>
       </div>
@@ -84,32 +89,32 @@
   <section id="screen-game" class="screen hidden">
     <div class="game">
       <div class="g-top players-row" id="row-top"></div>
-      <div class="g-board panel" id="board"></div>
+      <div class="g-board frame" id="board"></div>
       <div class="g-chat" id="game-chat-slot"></div>
       <div class="g-bottom players-row" id="row-bottom"></div>
       <aside class="g-side">
-        <div class="panel role-panel" id="role-panel"></div>
+        <div class="role-slot" id="role-panel"></div>
         <div class="scroll" id="comp-panel"></div>
       </aside>
     </div>
   </section>
 
   <!-- 단체 채팅 (대기실/게임 화면 사이를 이동) -->
-  <div id="chat" class="panel chat">
+  <div id="chat" class="frame chat">
     <div class="chat-tabs">
-      <button class="chat-tab active" data-tab="all">단체채팅</button>
-      <button class="chat-tab evil hidden" data-tab="evil" id="tab-evil">악 팀 회의 <span class="badge hidden" id="evil-badge"></span></button>
+      <button class="chat-tab active" data-tab="all">📜 단체채팅</button>
+      <button class="chat-tab evil hidden" data-tab="evil" id="tab-evil">⚔ 악 팀 회의 <span class="badge hidden" id="evil-badge"></span></button>
     </div>
     <div class="chat-log" id="chat-log"></div>
-    <div class="chat-log hidden" id="evil-log"></div>
+    <div class="chat-log evil-log hidden" id="evil-log"></div>
     <form class="chat-form" id="chat-form" autocomplete="off">
       <input id="chat-input" maxlength="300" placeholder="메시지 입력…">
-      <button class="btn small gold" type="submit">보내기</button>
+      <button class="btn gold small" type="submit"><span>보내기</span></button>
     </form>
   </div>
 
   <!-- 1:1 채팅 -->
-  <div id="dm" class="dm hidden" role="dialog" aria-modal="false">
+  <div id="dm" class="dm frame hidden" role="dialog" aria-modal="false">
     <div class="dm-head">
       <span id="dm-title">1:1 채팅</span>
       <button class="icon-btn" id="dm-close" aria-label="닫기">✕</button>
@@ -117,20 +122,22 @@
     <div class="chat-log" id="dm-log"></div>
     <form class="chat-form" id="dm-form" autocomplete="off">
       <input id="dm-input" maxlength="300" placeholder="귓속말 입력…">
-      <button class="btn small gold" type="submit">보내기</button>
+      <button class="btn gold small" type="submit"><span>보내기</span></button>
     </form>
   </div>
 
   <!-- 역할 예상 선택 -->
-  <div id="predict" class="predict hidden" role="dialog">
+  <div id="predict" class="predict frame hidden" role="dialog">
     <div class="predict-title" id="predict-title"></div>
     <div class="predict-opts" id="predict-opts"></div>
   </div>
 
   <!-- 원정 결과 / 게임 결과 오버레이 -->
-  <div id="overlay" class="overlay hidden"><div class="overlay-card panel" id="overlay-card"></div></div>
+  <div id="overlay" class="overlay hidden"><div class="overlay-card frame" id="overlay-card"></div></div>
 
   <script src="/socket.io/socket.io.js"></script>
-  <script src="app.js"></script>
+  <script src="art.js?v=2"></script>
+  <script src="app.js?v=2"></script>
+  <script type="module" src="bg3d.js?v=2"></script>
 </body>
 </html>

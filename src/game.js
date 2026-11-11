@@ -333,10 +333,15 @@ class Game {
   }
 
   // 시작 시 각자가 알 수 있는 정보 {playerId: 'evil' | 'merlin?' | 'lancelot'}
+  //  - 멀린: 모드레드를 뺀 악 전원 (오베론, 악 랜슬롯 포함)
+  //  - 악: 오베론·악 랜슬롯을 뺀 악끼리 서로 앎
+  //  - 오베론, 악 랜슬롯: 다른 악을 모르고, 다른 악도 이들을 모름
+  //  - 랜슬롯 둘은 서로를 앎
   knowledgeFor(viewerId) {
     const role = this.roles[viewerId];
     const k = {};
     if (!role) return k;
+    const loner = (r) => r === 'oberon' || r === 'lancelot_evil';
     for (const id of this.order) {
       if (id === viewerId) continue;
       const r = this.roles[id];
@@ -345,8 +350,8 @@ class Game {
         if (evil && r !== 'mordred') k[id] = 'evil';
       } else if (role === 'percival') {
         if (r === 'merlin' || r === 'morgana') k[id] = 'merlin?';
-      } else if (ROLES[role].team === 'evil' && role !== 'oberon') {
-        if (evil && r !== 'oberon') k[id] = 'evil';
+      } else if (ROLES[role].team === 'evil' && !loner(role)) {
+        if (evil && !loner(r)) k[id] = 'evil';
       }
       if ((role === 'lancelot_good' || role === 'lancelot_evil') && (r === 'lancelot_good' || r === 'lancelot_evil')) {
         k[id] = 'lancelot';

@@ -1,6 +1,7 @@
 'use strict';
 
 const crypto = require('crypto');
+const { AI_NAMES } = require('./ai');
 const {
   Game, GameError, ROLES, MIN_PLAYERS, MAX_PLAYERS,
   normalizeOptions, validateOptions, composition, DEFAULT_OPTIONS,
@@ -61,8 +62,35 @@ class RoomManager {
     return room;
   }
 
-  makePlayer(name) {
-    return { id: randomId(6), token: randomId(16), name, connected: true, disconnectedAt: null };
+  makePlayer(name, ai = false) {
+    return { id: randomId(6), token: ai ? null : randomId(16), name, connected: true, disconnectedAt: null, ai };
+  }
+
+  humans(room) { return room.players.filter((p) => !p.ai); }
+
+  // AI 인원 맞추기 (방장만, 대기실에서만)
+  setAICount(room, playerId, count) {
+    this.requireHost(room, playerId);
+    if (room.phase !== 'lobby') throw new GameError('대기실에서만 AI 인원을 바꿀 수 있습니다.');
+    const want = Math.floor(Number(count));
+    if (!Number.isFinite(want) || want < 0) throw new GameError('AI 인원이 올바르지 않습니다.');
+    const humans = this.humans(room).length;
+    if (humans + want > MAX_PLAYERS) throw new GameError(`최대 ${MAX_PLAYERS}명까지입니다. (사람 ${humans}명 + AI ${want}명)`);
+    let ais = room.players.filter((p) => p.ai);
+    while (ais.length > want) {
+      const last = ais[ais.length - 1];
+      room.players = room.players.filter((p) => p.id !== last.id);
+      ais = ais.slice(0, -1);
+    }
+    while (ais.length < want) {
+      const used = new Set(room.players.map((p) => p.name));
+      const base = AI_NAMES.find((n) => !used.has(`AI ${n}`));
+      const name = base ? `AI ${base}` : `AI ${ais.length + 1}`;
+      const p = this.makePlayer(name, true);
+      room.players.push(p);
+      ais.push(p);
+    }
+    room.lastActive = Date.now();
   }
 
   createRoom(name) {
@@ -125,13 +153,13 @@ class RoomManager {
     room.lastActive = Date.now();
     // 방장이 나가면 연결된 다른 사람에게 방장 위임
     if (!connected && room.hostId === playerId) {
-      const next = room.players.find((x) => x.connected && x.id !== playerId);
+      const next = room.players.find((x) => x.connected && !x.ai && x.id !== playerId);
       if (next) {
         room.hostId = next.id;
         this.system(room, `방장이 ${next.name}님으로 바뀌었습니다.`);
       }
     }
-    if (connected && !room.players.some((x) => x.id === room.hostId && x.connected)) {
+    if (connected && !p.ai && !room.players.some((x) => x.id === room.hostId && x.connected)) {
       room.hostId = playerId;
     }
   }
@@ -156,12 +184,14 @@ class RoomManager {
       room.phase = 'lobby';
       this.system(room, '인원이 바뀌어 캐릭터 선정이 취소되었습니다.');
     }
-    if (room.players.length === 0) {
+    // 사람이 아무도 없으면 방 삭제 (AI 만 남은 방은 의미 없음)
+    if (this.humans(room).length === 0) {
       this.rooms.delete(room.code);
       return;
     }
     if (room.hostId === playerId) {
-      const next = room.players.find((x) => x.connected) || room.players[0];
+      const humans = this.humans(room);
+      const next = humans.find((x) => x.connected) || humans[0];
       room.hostId = next.id;
       this.system(room, `방장이 ${next.name}님으로 바뀌었습니다.`);
     }
@@ -351,7 +381,7 @@ class RoomManager {
         code: room.code,
         hostId: room.hostId,
         phase: room.phase,
-        players: room.players.map((p) => ({ id: p.id, name: p.name, connected: p.connected })),
+        players: room.players.map((p) => ({ id: p.id, name: p.name, connected: p.connected, ai: !!p.ai })),
         options: { ...room.options },
         composition: comp,
         optionsError,
@@ -380,7 +410,7 @@ class RoomManager {
         }
       }
       if (!this.rooms.has(room.code)) continue;
-      const anyone = room.players.some((p) => p.connected);
+      const anyone = room.players.some((p) => p.connected && !p.ai);
       if (!anyone && now - room.lastActive > idleMs) this.rooms.delete(room.code);
     }
     return removedPlayers;

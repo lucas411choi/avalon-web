@@ -143,11 +143,12 @@ test('시야: 악은 오베론을 뺀 악끼리 알고, 오베론은 아무도 �
   assert.deepEqual(g.knowledgeFor('p8'), {});
 });
 
-test('시야: 랜슬롯끼리는 서로 안다 / 멀린은 악 랜슬롯을 악으로 본다', () => {
+test('시야: 랜슬롯끼리만 서로 알고, 악 랜슬롯과 다른 악은 서로 모른다 / 멀린은 악 랜슬롯도 본다', () => {
   const g = riggedGame(['merlin', 'lancelot_good', 'servant', 'servant', 'assassin', 'lancelot_evil', 'minion'], { percival: false, morgana: false, lancelot: true });
   assert.deepEqual(g.knowledgeFor('p1'), { p5: 'lancelot' });
-  assert.deepEqual(g.knowledgeFor('p5'), { p1: 'lancelot', p4: 'evil', p6: 'evil' });
-  assert.deepEqual(g.knowledgeFor('p4'), { p5: 'evil', p6: 'evil' });
+  assert.deepEqual(g.knowledgeFor('p5'), { p1: 'lancelot' });
+  assert.deepEqual(g.knowledgeFor('p4'), { p6: 'evil' });
+  assert.deepEqual(g.knowledgeFor('p6'), { p4: 'evil' });
   assert.deepEqual(g.knowledgeFor('p0'), { p4: 'evil', p5: 'evil', p6: 'evil' });
 });
 
